@@ -6,6 +6,7 @@ use App\Models\Category;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Resources\CategoryResource;
 use Illuminate\Support\Facades\Validator;
@@ -35,13 +36,18 @@ class CategoryController extends Controller
         }
 
         //upload image
-        $image = $request->file('image');
-        $image->storeAs('public/categories', $image->hashName());
+        // $image = $request->file('image');
+        // $image->storeAs('public/categories', $image->hashName());
 
+        $img = $request->file('image');
+        $category['image'] = $img->getClientOriginalName();
+
+        $filePath = public_path('/upload/categories');
+        $img->move($filePath, $category['image']);
 
         //create category
         $category = Category::create([
-            'image'=> $image->hashName(),
+            'image'=> $category['image'],
             'name' => $request->name,
             'slug' => Str::slug($request->name, '-'),
         ]);
@@ -82,15 +88,21 @@ class CategoryController extends Controller
         if ($request->file('image')) {
 
             //remove old image
-            Storage::disk('local')->delete('public/categories/'.basename($category->image));
+            $old_image = public_path('upload/categories/'.basename($category->image)); 
+            if(File::exists($old_image)) {
+                File::delete($old_image);
+            }
         
             //upload new image
-            $image = $request->file('image');
-            $image->storeAs('public/categories', $image->hashName());
+            $img = $request->file('image');
+            $category['image'] = $img->getClientOriginalName();
+
+            $filePath = public_path('/upload/categories');
+            $img->move($filePath, $category['image']);
 
             //update category with new image
             $category->update([
-                'image'=> $image->hashName(),
+                'image'=> $category['image'],
                 'name' => $request->name,
                 'slug' => Str::slug($request->name, '-'),
             ]);
@@ -116,9 +128,10 @@ class CategoryController extends Controller
     public function destroy(Category $category)
     {
         //remove image
-        Storage::disk('local')->delete('public/categories/'.basename($category->image));
-
-
+        $old_image = public_path('upload/categories/'.basename($category->image)); 
+        if(File::exists($old_image)) {
+            File::delete($old_image);
+        } 
 
         if($category->delete()) {
             //return success with Api Resource

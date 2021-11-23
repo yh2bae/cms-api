@@ -18,8 +18,8 @@ class Category extends Model
         return $this->hasMany(Post::class);
     }
 
-    public function getImageAttribute($image)
-    {
-        return asset('storage/categories/' . $image);
-    }
+    // public function getImageAttribute($image)
+    // {
+    //     return asset('upload/categories/'. $image);
+    // }
 }

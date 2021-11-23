@@ -7,6 +7,7 @@ use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\PostResource;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
@@ -14,7 +15,7 @@ class PostController extends Controller
 {
     public function index()
     {
-        $posts = Post::with('user', 'category', 'comments')->when(request()->q, function($posts) {
+        $posts = Post::with('user', 'category', 'comments', 'tags')->when(request()->q, function($posts) {
             $posts = $posts->where('title', 'like', '%'. request()->q . '%');
         })->latest()->paginate(5);
 
@@ -37,11 +38,17 @@ class PostController extends Controller
         }
 
         //upload image
-        $image = $request->file('image');
-        $image->storeAs('public/posts', $image->hashName());
+        // $image = $request->file('image');
+        // $image->storeAs('public/posts', $image->hashName());
+
+        $img = $request->file('image');
+        $post['image'] = $img->getClientOriginalName();
+
+        $filePath = public_path('/upload/posts');
+        $img->move($filePath, $post['image']);
 
         $post = Post::create([
-            'image'       => $image->hashName(),
+            'image'       => $post['image'],
             'title'       => $request->title,
             'slug'        => Str::slug($request->title, '-'),
             'category_id' => $request->category_id,
@@ -93,14 +100,20 @@ class PostController extends Controller
         if ($request->file('image')) {
 
             //remove old image
-            Storage::disk('local')->delete('public/posts/'.basename($post->image));
-        
+            $old_image = public_path('upload/posts/'.basename($post->image)); 
+            if(File::exists($old_image)) {
+                File::delete($old_image);
+            }
+
             //upload new image
-            $image = $request->file('image');
-            $image->storeAs('public/posts', $image->hashName());
+            $img = $request->file('image');
+            $post['image'] = $img->getClientOriginalName();
+
+            $filePath = public_path('/upload/posts');
+            $img->move($filePath, $post['image']);
 
             $post->update([
-                'image'       => $image->hashName(),
+                'image'       => $post['image'],
                 'title'       => $request->title,
                 'slug'        => Str::slug($request->title, '-'),
                 'category_id' => $request->category_id,
@@ -137,7 +150,10 @@ class PostController extends Controller
     {
         $post->tags()->detach();
         //remove image
-        Storage::disk('local')->delete('public/posts/'.basename($post->image));
+        $old_image = public_path('upload/posts/'.basename($post->image)); 
+        if(File::exists($old_image)) {
+            File::delete($old_image);
+        }
 
         if($post->delete()) {
             //return success with Api Resource

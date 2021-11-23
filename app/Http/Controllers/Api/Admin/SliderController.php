@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Models\Slider;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\File;
 use App\Http\Resources\SliderResource;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -28,12 +29,14 @@ class SliderController extends Controller
             return response()->json($validator->errors(), 422);
         }
 
-        //upload image
-        $image = $request->file('image');
-        $image->storeAs('public/sliders', $image->hashName());
+        $img = $request->file('image');
+        $slider['image'] = $img->getClientOriginalName();
+
+        $filePath = public_path('/upload/sliders');
+        $img->move($filePath, $slider['image']);
 
         $slider = Slider::create([
-            'image' => $image->hashName(),
+            'image' => $slider['image'],
         ]);
 
         if($slider) {
@@ -48,7 +51,10 @@ class SliderController extends Controller
     public function destroy(Slider $slider)
     {
         //remove image
-        Storage::disk('local')->delete('public/sliders/'.basename($slider->image));
+        $old_image = public_path('upload/sliders/'.basename($slider->image)); 
+        if(File::exists($old_image)) {
+            File::delete($old_image);
+        } 
 
         if($slider->delete()) {
             //return success with Api Resource

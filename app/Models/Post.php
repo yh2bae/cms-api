@@ -33,10 +33,10 @@ class Post extends Model
         return $this->belongsToMany(Tag::class);
     }
 
-    public function getImageAttribute($image)
-    {
-        return asset('storage/posts/' . $image);
-    }
+    // public function getImageAttribute($image)
+    // {
+    //     return asset('upload/posts/' . $image);
+    // }
 
     public function getCreatedAtAttribute($created_at)
     {   
